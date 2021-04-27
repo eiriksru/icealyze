@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from PIL import Image
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+#os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 width = 2500
 height = 1600
@@ -52,13 +52,13 @@ interpolasjon_metoder = [None, 'none', 'nearest', 'bilinear', 'bicubic', 'spline
 
 # Deler opp bilde i størrelse spesifisert med block_size og looper over disse
 def img_avg_block(name):
+    block_size = 100
     # hente inn bilde og gjøre det til format RGB
     im = cv2.imread(name)
     print(f"shape of image = {im.shape}")
     im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-
-    block_size = 70
-
+    im = im[:][1000:]
+    print(f"shape of image = {im.shape}")
     # antall blocks som skal lages, ut ifra bildens størrelse og block_size
     i_max = int(len(im)/block_size)
     j_max = int(len(im[0])/block_size)
@@ -78,22 +78,50 @@ def img_avg_block(name):
             color_avg[i][j] = color_calc
     return color_avg
 
+def isolate_color(im):
 
-#top_quality_ice = img_avg_block()
 
-slitt = img_avg_block('Images/hallbesøk_22_april/IMG_2298_cropped.png')
-uslitt = img_avg_block('Images/hall_uslitt.png')
+    boundary_pink = [([100, 100, 100], [200, 200, 200])]
 
+    for (lower, upper) in boundary_pink:
+        lower = np.array(lower, dtype="uint8")
+        upper = np.array(upper, dtype="uint8")
+
+        mask = cv2.inRange(im, lower, upper)
+        output = cv2.bitwise_and(im, im, mask=mask)
+
+    # cv2.imwrite(imagename + "_edited.jpg", output)
+    return output
+
+uslitt = img_avg_block('Images\Hallvisitt 22 april\Hallvisitt 22 april\\nypebblet.png')
+#uslitt = img_avg_block(uslitt)
+uslitt = np.asarray(uslitt)
+
+skrapt = img_avg_block('Images\Hallvisitt 22 april\Hallvisitt 22 april\\upebblet.png')
+#skrapt = img_avg_block(skrapt)
+skrapt = np.asarray(skrapt)
+
+var_slitt = img_avg_block('Images\Hallvisitt 22 april\Hallvisitt 22 april\\slitt_level1.png')
+#var_slitt = img_avg_block(var_slitt)
+var_slitt = np.asarray(var_slitt)
+
+
+#uslitt = img_avg_block('Images\Hallvisitt 22 april\Hallvisitt 22 april\IMG_2287.png')
+
+max = uslitt.max()
+min = skrapt.min()
 
 diff_img = np.zeros(shape=(len(uslitt), len(uslitt[0])))
 
+for i in range(len(var_slitt)):
+    for j in range(len(var_slitt[0])):
+        diff_img[i][j] = 255*var_slitt[i][j]/(max-min)-255*min/(max-min)
 
-for i in range(len(slitt)):
-    for j in range(len(slitt[0])):
-        diff_img[i][j] = slitt[i][j] - uslitt[i][j]
 
-plt.imshow(diff_img, interpolation=interpolasjon_metoder[16], cmap=cm.jet_r) 	# sinc blur metode
+plt.imshow(diff_img, interpolation=interpolasjon_metoder[16], cmap=cm.jet_r)#,vmax=uslitt.max()) 	# sinc blur metode
+# plt.imsave('heatmap_level3.png', diff_img)
 plt.show()
+
 # invert image
 #image = (255-image)
 #cv2.imwrite(imagename + "inverted.jpg", image)
